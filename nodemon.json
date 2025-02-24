@@ -1,0 +1,9 @@
+{
+  "watch": ["src", "package.json"],
+  "ext": ".ts,.js",
+  "ignore": [],
+  "exec": "rimraf dist && tsc && npm run copy-static && node --enable-source-maps ./dist/app.js",
+  "env": {
+    "NODE_ENV": "development"
+  }
+}

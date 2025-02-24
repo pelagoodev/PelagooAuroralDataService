@@ -1,0 +1,216 @@
+openapi: 3.0.0
+info:
+  title: Auroral Pelagoo Data Service API
+  description: >
+    API documentation for the Auroral Pelagoo project Backend. Routes include Fitbit integration, NodeRed endpoints, UI endpoints, and static page serving.
+  version: "1.0.0"
+servers:
+  - url: https://auroral.pelagoo.org
+paths:
+  /map:
+    get:
+      summary: Serve the static map page
+      description: Returns the static HTML mapping page.
+      responses:
+        '200':
+          description: HTML page returned successfully.
+          content:
+            text/html:
+              schema:
+                type: string
+                example: "<!DOCTYPE html> <html> ... </html>"
+  /fitbit/url:
+    get:
+      summary: Get Fitbit Authentication URL
+      description: Returns the URL used to authorize the Fitbit application.
+      responses:
+        '200':
+          description: Successful retrieval of auth URL.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    example: "https://www.fitbit.com/oauth2/authorize?client_id=XYZ..."
+        '400':
+          description: Missing or invalid request parameters.
+  /fitbit/callback:
+    get:
+      summary: Fitbit OAuth Callback
+      description: Receives the callback from Fitbit after authorization.
+      parameters:
+        - in: query
+          name: code
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successfully connected; returns an HTML confirmation page.
+          content:
+            text/html:
+              schema:
+                type: string
+                example: "<!DOCTYPE html><html><head><title>Fitbit Connection Success</title>...</html>"
+        '400':
+          description: Missing code parameter.
+  /fitbit/refresh:
+    get:
+      summary: Refresh Fitbit Token
+      description: Refreshes the Fitbit access token.
+      responses:
+        '200':
+          description: Successfully refreshed token.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    example: "newAccessToken"
+                  refresh_token:
+                    type: string
+                    example: "newRefreshToken"
+        '401':
+          description: Token expired or invalid.
+  /nr/fit/{property}:
+    get:
+      summary: Retrieve Fit data via NodeRed controller
+      description: >
+        Retrieves various fit-related metrics (e.g., calories, steps, heart rates, sleeps etc.)
+      parameters:
+        - in: path
+          name: property
+          required: true
+          schema:
+            type: string
+          description: Type of metric (e.g. getcalories, getSteps, getheartratefatburn, etc.)
+        - in: query
+          name: fit
+          required: true
+          schema:
+            type: string
+          description: The Fitbit ID of the user.
+      responses:
+        '200':
+          description: Successfully retrieved fit metric.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    description: For heart rate responses
+                    properties:
+                      min:
+                        type: number
+                        example: 60
+                      max:
+                        type: number
+                        example: 100
+                  - type: string
+                    description: Scalar value response as string (e.g., "350" for calories)
+        '400':
+          description: Missing parameters or invalid property.
+        '404':
+          description: Data not found for the given fit ID.
+  /nr/bike/{property}:
+    get:
+      summary: Retrieve Bike data via NodeRed controller
+      description: >
+        Retrieves bike-related data. For example, the endpoint "gettodaydistance" calculates the distance traveled today.
+      parameters:
+        - in: path
+          name: property
+          required: true
+          schema:
+            type: string
+          description: The bike property to retrieve (e.g., gettodaydistance).
+        - in: query
+          name: imei
+          required: true
+          schema:
+            type: string
+          description: The IMEI of the bike device.
+      responses:
+        '200':
+          description: Successfully retrieved bike metric.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "45"
+        '400':
+          description: Missing parameters or invalid property.
+        '404':
+          description: Data not found.
+  /ui/trips:
+    get:
+      summary: Get Last Trips
+      description: Returns a list of trips aggregated by bike IMEI with GPS coordinates.
+      responses:
+        '200':
+          description: Successfully retrieved trip data.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trips:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        latitude:
+                          type: number
+                          example: 40.7128
+                        longitude:
+                          type: number
+                          example: -74.0060
+        '404':
+          description: Trips not found.
+  /ui/lastKnownPos:
+    get:
+      summary: Get Last Known Position
+      description: Returns the last known position of a bike.
+      responses:
+        '200':
+          description: Successfully retrieved position.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  latitude:
+                    type: number
+                    example: 40.7128
+                  longitude:
+                    type: number
+                    example: -74.0060
+        '404':
+          description: Position not found.
+components:
+  schemas:
+    FitbitTokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+    Trip:
+      type: object
+      properties:
+        latitude:
+          type: number
+        longitude:
+          type: number
+    Position:
+      type: object
+      properties:
+        latitude:
+          type: number
+        longitude:
+          type: number
